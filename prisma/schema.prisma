@@ -1,0 +1,75 @@
+// Prisma schema for the AI Day Planner
+// Run `npx prisma migrate dev --name init` after setting DATABASE_URL.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum TaskCategory {
+  STUDY
+  WORK
+  CHORE
+  ERRAND
+  EXERCISE
+  OTHER
+}
+
+model Task {
+  id            String       @id @default(cuid())
+  title         String
+  description   String?
+  durationMin   Int // estimated duration, in minutes
+  priority      Priority     @default(MEDIUM)
+  category      TaskCategory @default(OTHER)
+  deadline      DateTime?
+  earliestStart DateTime?
+  latestEnd     DateTime?
+  preferredTime String? // "morning" | "afternoon" | "evening", kept loose on purpose
+  location      String?
+  completed     Boolean      @default(false)
+
+  // Set once the scheduling engine places this task; null while unscheduled.
+  scheduledStart DateTime?
+  scheduledEnd   DateTime?
+  reasoning      String? // why the engine placed it here (or why it's unscheduled)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Event {
+  id        String   @id @default(cuid())
+  title     String
+  startTime DateTime
+  endTime   DateTime
+  location  String?
+  recurring Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Single-row table for now — one user, no auth yet (Phase 12 stretch goal).
+model Preferences {
+  id                  String   @id @default(cuid())
+  wakeTime            String   @default("07:30") // "HH:MM", 24h
+  sleepTime           String   @default("23:00")
+  preferredStudyTime  String   @default("morning")
+  preferredWorkoutTime String  @default("evening")
+  breakFrequencyMin   Int      @default(50) // work this long before a break
+  breakLengthMin      Int      @default(10)
+  maxContinuousWorkMin Int     @default(90)
+
+  updatedAt DateTime @updatedAt
+}
