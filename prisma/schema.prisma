@@ -35,6 +35,12 @@ model Task {
   deadline      DateTime?
   earliestStart DateTime?
   latestEnd     DateTime?
+  // If true, earliestStart/latestEnd must never be violated (hard constraint —
+  // e.g. "can't start before noon, doctor's orders"). If false, the window is
+  // a soft preference the scheduler will try to honor but can flex on if the
+  // day doesn't otherwise fit (e.g. "I'd rather study in the window, but it's
+  // not critical"). See docs/phase1-planning-problem.md for the hard/soft split.
+  windowIsHard  Boolean      @default(false)
   preferredTime String? // "morning" | "afternoon" | "evening", kept loose on purpose
   location      String?
   completed     Boolean      @default(false)

@@ -4,6 +4,13 @@ import { prisma } from "@/lib/prisma";
 import { Priority, TaskCategory } from "@prisma/client";
 import { redirect } from "next/navigation";
 
+function timeToday(timeHHMM: string): Date {
+  const [h, m] = timeHHMM.split(":").map(Number);
+  const d = new Date();
+  d.setHours(h, m, 0, 0);
+  return d;
+}
+
 export async function createTask(formData: FormData) {
   const title = String(formData.get("title") ?? "").trim();
   const durationMin = Number(formData.get("durationMin") ?? 0);
@@ -11,9 +18,23 @@ export async function createTask(formData: FormData) {
   const category = String(formData.get("category") ?? "OTHER") as TaskCategory;
   const deadlineRaw = String(formData.get("deadline") ?? "");
   const preferredTime = String(formData.get("preferredTime") ?? "") || null;
+  const earliestStartRaw = String(formData.get("earliestStart") ?? "");
+  const latestEndRaw = String(formData.get("latestEnd") ?? "");
+  const windowIsHard = formData.get("windowIsHard") === "on";
 
   if (!title || durationMin <= 0) {
     throw new Error("Task needs a title and a duration greater than zero.");
+  }
+
+  if (earliestStartRaw && latestEndRaw) {
+    const windowMinutes =
+      timeToday(latestEndRaw).getTime() / 60000 -
+      timeToday(earliestStartRaw).getTime() / 60000;
+    if (windowMinutes < durationMin) {
+      throw new Error(
+        `The window you gave (${earliestStartRaw}–${latestEndRaw}) is shorter than the task's duration (${durationMin} min). Widen the window or shorten the task.`
+      );
+    }
   }
 
   await prisma.task.create({
@@ -24,6 +45,9 @@ export async function createTask(formData: FormData) {
       category,
       deadline: deadlineRaw ? new Date(deadlineRaw) : null,
       preferredTime,
+      earliestStart: earliestStartRaw ? timeToday(earliestStartRaw) : null,
+      latestEnd: latestEndRaw ? timeToday(latestEndRaw) : null,
+      windowIsHard,
     },
   });
 
